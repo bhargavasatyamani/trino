@@ -15,20 +15,29 @@ package io.trino.plugin.neo4j;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.airlift.slice.Slice;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
+import io.trino.spi.connector.ConnectorInsertTableHandle;
 import io.trino.spi.connector.ConnectorMetadata;
+import io.trino.spi.connector.ConnectorOutputMetadata;
+import io.trino.spi.connector.ConnectorOutputTableHandle;
 import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorTableHandle;
+import io.trino.spi.connector.ConnectorTableLayout;
 import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.ConnectorTableVersion;
+import io.trino.spi.connector.RetryMode;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SchemaTablePrefix;
+import io.trino.spi.statistics.ComputedStatistics;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
 public class Neo4jMetadata
@@ -143,5 +152,74 @@ public class Neo4jMetadata
         }
 
         return columns.buildOrThrow();
+    }
+
+    @Override
+    public ConnectorOutputTableHandle beginCreateTable(
+            ConnectorSession session,
+            ConnectorTableMetadata tableMetadata,
+            Optional<ConnectorTableLayout> layout,
+            RetryMode retryMode,
+            boolean replace)
+    {
+        SchemaTableName schemaTableName = tableMetadata.getTable();
+
+        // Convert columns to Neo4jColumnHandle
+        List<Neo4jColumnHandle> columns = ImmutableList.of();
+        int ordinal = 0;
+        for (ColumnMetadata column : tableMetadata.getColumns()) {
+            columns = ImmutableList.<Neo4jColumnHandle>builder()
+                    .addAll(columns)
+                    .add(new Neo4jColumnHandle(column.getName(), column.getType(), ordinal++))
+                    .build();
+        }
+
+        return new Neo4jOutputTableHandle(
+                schemaTableName.getSchemaName(),
+                schemaTableName.getTableName(),
+                columns);
+    }
+
+    @Override
+    public Optional<ConnectorOutputMetadata> finishCreateTable(
+            ConnectorSession session,
+            ConnectorOutputTableHandle tableHandle,
+            Collection<Slice> fragments,
+            Collection<ComputedStatistics> computedStatistics)
+    {
+        // No additional metadata needed
+        return Optional.empty();
+    }
+
+    @Override
+    public ConnectorInsertTableHandle beginInsert(
+            ConnectorSession session,
+            ConnectorTableHandle tableHandle,
+            List<ColumnHandle> columns,
+            RetryMode retryMode)
+    {
+        Neo4jTableHandle neo4jTableHandle = (Neo4jTableHandle) tableHandle;
+
+        // Convert columns to Neo4jColumnHandle
+        List<Neo4jColumnHandle> neo4jColumns = columns.stream()
+                .map(column -> (Neo4jColumnHandle) column)
+                .collect(toImmutableList());
+
+        return new Neo4jInsertTableHandle(
+                neo4jTableHandle.getSchemaName(),
+                neo4jTableHandle.getTableName(),
+                neo4jColumns);
+    }
+
+    @Override
+    public Optional<ConnectorOutputMetadata> finishInsert(
+            ConnectorSession session,
+            ConnectorInsertTableHandle insertHandle,
+            List<ConnectorTableHandle> sourceTableHandles,
+            Collection<Slice> fragments,
+            Collection<ComputedStatistics> computedStatistics)
+    {
+        // No additional metadata needed
+        return Optional.empty();
     }
 }

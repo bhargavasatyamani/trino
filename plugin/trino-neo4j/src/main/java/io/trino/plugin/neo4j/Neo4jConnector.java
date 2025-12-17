@@ -17,6 +17,7 @@ import com.google.inject.Inject;
 import io.airlift.bootstrap.LifeCycleManager;
 import io.trino.spi.connector.Connector;
 import io.trino.spi.connector.ConnectorMetadata;
+import io.trino.spi.connector.ConnectorPageSinkProvider;
 import io.trino.spi.connector.ConnectorPageSourceProvider;
 import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorSplitManager;
@@ -32,18 +33,21 @@ public class Neo4jConnector
     private final Neo4jTransactionManager transactionManager;
     private final Neo4jSplitManager splitManager;
     private final Neo4jPageSourceProvider pageSourceProvider;
+    private final Neo4jPageSinkProvider pageSinkProvider;
 
     @Inject
     public Neo4jConnector(
             LifeCycleManager lifeCycleManager,
             Neo4jTransactionManager transactionManager,
             Neo4jSplitManager splitManager,
-            Neo4jPageSourceProvider pageSourceProvider)
+            Neo4jPageSourceProvider pageSourceProvider,
+            Neo4jPageSinkProvider pageSinkProvider)
     {
         this.lifeCycleManager = requireNonNull(lifeCycleManager, "lifeCycleManager is null");
         this.transactionManager = requireNonNull(transactionManager, "transactionManager is null");
         this.splitManager = requireNonNull(splitManager, "splitManager is null");
         this.pageSourceProvider = requireNonNull(pageSourceProvider, "pageSourceProvider is null");
+        this.pageSinkProvider = requireNonNull(pageSinkProvider, "pageSinkProvider is null");
     }
 
     @Override
@@ -80,6 +84,12 @@ public class Neo4jConnector
     public ConnectorPageSourceProvider getPageSourceProvider()
     {
         return pageSourceProvider;
+    }
+
+    @Override
+    public ConnectorPageSinkProvider getPageSinkProvider()
+    {
+        return pageSinkProvider;
     }
 
     @Override

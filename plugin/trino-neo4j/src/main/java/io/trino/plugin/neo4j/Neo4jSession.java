@@ -110,6 +110,12 @@ public class Neo4jSession
             return null;
         }
 
+        // Check if the label actually exists in Neo4j
+        Set<String> existingTables = getAllTables(tableName.getSchemaName());
+        if (!existingTables.contains(tableName.getTableName())) {
+            return null;
+        }
+
         return new Neo4jTableHandle(tableName.getSchemaName(), tableName.getTableName());
     }
 

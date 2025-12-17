@@ -30,6 +30,7 @@ public class Neo4jClientModule
         binder.bind(Neo4jTransactionManager.class).in(Scopes.SINGLETON);
         binder.bind(Neo4jSplitManager.class).in(Scopes.SINGLETON);
         binder.bind(Neo4jPageSourceProvider.class).in(Scopes.SINGLETON);
+        binder.bind(Neo4jPageSinkProvider.class).in(Scopes.SINGLETON);
         binder.bind(Neo4jSession.class).in(Scopes.SINGLETON);
 
         configBinder(binder).bindConfig(Neo4jConfig.class);
